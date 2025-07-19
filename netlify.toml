@@ -1,0 +1,15 @@
+[build]
+  publish = "dist"
+  command = "bunx rork build --web"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[dev]
+  command = "bunx rork start --web"
+  port = 8081
