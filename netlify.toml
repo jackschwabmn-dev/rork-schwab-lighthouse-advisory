@@ -13,3 +13,13 @@
 [dev]
   command = "bunx rork start --web"
   port = 8081
+
+# Environment variables for production
+[context.production.environment]
+  NODE_ENV = "production"
+
+# Handle API routes
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200

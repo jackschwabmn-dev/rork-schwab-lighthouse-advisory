@@ -9,8 +9,9 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Alert,
+  Linking,
 } from "react-native";
-import { Send } from "lucide-react-native";
+import { Send, Mail, Phone } from "lucide-react-native";
 import emailjs from "@emailjs/browser";
 import Colors from "@/constants/colors";
 import Typography from "@/constants/typography";
@@ -32,12 +33,17 @@ const ContactForm: React.FC<ContactFormProps> = ({ testID }) => {
 
   const [errors, setErrors] = useState<Partial<ContactFormData>>({});
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [submitAttempts, setSubmitAttempts] = useState<number>(0);
 
   // Initialize EmailJS with public key
   React.useEffect(() => {
-    emailjs.init({
-      publicKey: "e1ElFhFD-JBL0yPMY",
-    });
+    try {
+      emailjs.init({
+        publicKey: "e1ElFhFD-JBL0yPMY",
+      });
+    } catch (error) {
+      console.log("EmailJS initialization failed:", error);
+    }
   }, []);
 
   const validateForm = (): boolean => {
@@ -61,10 +67,29 @@ const ContactForm: React.FC<ContactFormProps> = ({ testID }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleDirectContact = () => {
+    Alert.alert(
+      "Contact Options",
+      "Choose how you'd like to reach us:",
+      [
+        {
+          text: "Email",
+          onPress: () => Linking.openURL("mailto:info@schwablighthouse.com?subject=Inquiry&body=" + encodeURIComponent(`Name: ${formData.name}\nCompany: ${formData.company}\n\nMessage:\n${formData.message}`))
+        },
+        {
+          text: "Phone",
+          onPress: () => Linking.openURL("tel:+16128173969")
+        },
+        { text: "Cancel", style: "cancel" }
+      ]
+    );
+  };
+
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
+    setSubmitAttempts(prev => prev + 1);
 
     try {
       // Prepare template parameters matching your EmailJS template
@@ -101,12 +126,27 @@ ${formData.message}`,
       } else {
         throw new Error(`EmailJS returned status: ${result.status}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("EmailJS error:", error);
+      
+      // Handle specific EmailJS errors
+      let errorMessage = "There was an issue sending your message.";
+      
+      if (error?.text?.includes("usage") || error?.text?.includes("charged")) {
+        errorMessage = "Our contact form is temporarily unavailable due to service limits.";
+      } else if (error?.text?.includes("API calls are disabled")) {
+        errorMessage = "Email service is currently unavailable.";
+      } else if (error?.status === 403) {
+        errorMessage = "Email service access is restricted.";
+      }
+
       Alert.alert(
-        "Error",
-        "There was an issue sending your message. Please try again or contact us directly at info@schwablighthouse.com",
-        [{ text: "OK" }]
+        "Unable to Send Message",
+        `${errorMessage}\n\nWould you like to contact us directly instead?`,
+        [
+          { text: "Contact Directly", onPress: handleDirectContact },
+          { text: "Try Again Later", style: "cancel" }
+        ]
       );
     } finally {
       setIsLoading(false);
@@ -121,6 +161,7 @@ ${formData.message}`,
       message: "",
     });
     setErrors({});
+    setSubmitAttempts(0);
   };
 
   return (
@@ -134,6 +175,27 @@ ${formData.message}`,
         <Text style={styles.subtitle}>
           Reach out to discuss how we can help your organization unlock the full value of your data.
         </Text>
+
+        {/* Direct Contact Options */}
+        <View style={styles.directContactSection}>
+          <Text style={styles.directContactTitle}>Or contact us directly:</Text>
+          <View style={styles.directContactButtons}>
+            <TouchableOpacity
+              style={styles.directContactButton}
+              onPress={() => Linking.openURL("mailto:info@schwablighthouse.com")}
+            >
+              <Mail color={Colors.primary.main} size={20} />
+              <Text style={styles.directContactText}>Email Us</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.directContactButton}
+              onPress={() => Linking.openURL("tel:+16128173969")}
+            >
+              <Phone color={Colors.primary.main} size={20} />
+              <Text style={styles.directContactText}>Call Us</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <View style={styles.formGroup}>
           <Text style={styles.label}>Name *</Text>
@@ -213,6 +275,12 @@ ${formData.message}`,
           style={styles.submitButton}
           testID="contact-submit-button"
         />
+
+        {submitAttempts > 0 && (
+          <Text style={styles.helpText}>
+            Having trouble? You can also email us directly at info@schwablighthouse.com or call (612) 817-3969
+          </Text>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -234,8 +302,43 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.regular,
     fontSize: Typography.fontSize.md,
     color: Colors.text.secondary,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     lineHeight: Typography.lineHeight.md,
+  },
+  directContactSection: {
+    backgroundColor: Colors.background.secondary,
+    padding: Spacing.md,
+    borderRadius: 8,
+    marginBottom: Spacing.xl,
+  },
+  directContactTitle: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
+    textAlign: "center",
+  },
+  directContactButtons: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  directContactButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.neutral.white,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary.main,
+  },
+  directContactText: {
+    fontFamily: Typography.fontFamily.medium,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.primary.main,
+    marginLeft: Spacing.xs,
   },
   formGroup: {
     marginBottom: Spacing.md,
@@ -270,7 +373,14 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: Spacing.md,
-    marginBottom: Spacing.xxl,
+    marginBottom: Spacing.lg,
+  },
+  helpText: {
+    fontFamily: Typography.fontFamily.regular,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.tertiary,
+    textAlign: "center",
+    fontStyle: "italic",
   },
 });
 
