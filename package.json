@@ -3,10 +3,10 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "bunx rork start -p v6pi95k8j7xwxfrv1oqx8 --tunnel",
-    "start-web": "bunx rork start -p v6pi95k8j7xwxfrv1oqx8 --web --tunnel",
-    "start-web-dev": "DEBUG=expo* bunx rork start -p v6pi95k8j7xwxfrv1oqx8 --web --tunnel"
-       "build:web": "bunx rork export --platform web"
+     "start": "npx expo start -p v6pi95k8j7xwxfrv1oqx8 --tunnel",
+   "start-web": "npx expo start -p v6pi95k8j7xwxfrv1oqx8 --web --tunnel",
+   "start-web-dev": "DEBUG=expo* npx expo start -p v6pi95k8j7xwxfrv1oqx8 --web --tunnel",
+   "build:web": "npx expo export --platform web"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
