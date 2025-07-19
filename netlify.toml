@@ -1,6 +1,6 @@
 [build]
   publish = "dist"
-  command = "bunx rork build --web"
+  command = "npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
@@ -11,7 +11,7 @@
   status = 200
 
 [dev]
-  command = "bunx rork start --web"
+  command = "npm run start-web"
   port = 8081
 
 # Environment variables for production
